@@ -1,0 +1,41 @@
+{
+  "skill_name": "flink-sql-table-api",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write an OSS Flink SQL query for my events table (user_id STRING, page STRING, event_time TIMESTAMP(3) with watermark) that tumbles 10-second windows and returns the top 3 pages by view count per window. I will run it in sql-client on a local Flink 2.5 cluster, not on Confluent Cloud.",
+      "expected_output": "A query using the TUMBLE window TVF plus a nested ROW_NUMBER() TOP-N subquery partitioned by window_start/window_end, with watermark-dependent semantics explained and an EXPLAIN verification step.",
+      "files": [],
+      "assertions": [
+        "Query uses TABLE(TUMBLE(TABLE events, DESCRIPTOR(event_time), INTERVAL '10' SECOND)) rather than only a legacy group-window call",
+        "TOP-N is implemented with ROW_NUMBER() OVER (PARTITION BY window_start, window_end ORDER BY views DESC) and a WHERE rn <= 3 filter",
+        "Mentions `EXPLAIN` as the first verification step before execution",
+        "Does NOT mention the `confluent flink` CLI, CREATE CONNECTION, or compute pools"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "My Flink SQL job inserts the result of GROUP BY user_id COUNT(*) aggregation into a Kafka topic and fails at startup with a changelog mode error. The source is an unbounded changelog stream on Apache Flink OSS. How do I fix it?",
+      "expected_output": "Diagnosis that the append-only sink cannot consume the retracting (-D/+U) changelog produced by the aggregation, plus concrete fixes: upsert-mode sink keyed on the group key, or a window/boundary that makes output append-only, verified with EXPLAIN showing ChangelogMode.",
+      "files": [],
+      "assertions": [
+        "Explains that GROUP BY aggregation emits -D/+U rows per docs/content/docs/sql/reference/queries/changelog.md",
+        "Proposes an upsert sink keyed by user_id OR a windowed aggregation to make output append-only",
+        "References docs/content/docs/sql/reference/queries/changelog.md or the changelog concept",
+        "Does NOT propose simply removing the aggregation or running the job in batch mode as the primary fix"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Convert this SQL to the fluent Table API in Java for a Flink 2.5 job: SELECT user_id, SUM(amount) AS total FROM purchases WHERE amount > 0 GROUP BY user_id, and also tell me where Expressions.$ lives in this source tree.",
+      "expected_output": "Working Table API code using from(...).filter($(\"amount\").gt(0)).groupBy($(\"user_id\")).select($(\"user_id\"), $(\"amount\").sum().as(\"total\")) and a correct path to the Expressions/BaseExpressions classes in flink-table-api-java.",
+      "files": [],
+      "assertions": [
+        "Code uses $(\"amount\").sum().as(\"total\") or the equivalent sum() aggregation call",
+        "Filter uses $(\"amount\").gt(0) (or isGreaterThan) rather than a raw lambda",
+        "Points to flink-table/flink-table-api-java/src/main/java/org/apache/flink/table/api/Expressions.java for the $ helper",
+        "Does NOT invent a Scala-only API such as 'import org.apache.flink.api.scala._'"
+      ]
+    }
+  ]
+}

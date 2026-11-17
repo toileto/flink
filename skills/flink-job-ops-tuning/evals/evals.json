@@ -1,0 +1,41 @@
+{
+  "skill_name": "flink-job-ops-tuning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "On my Apache Flink 2.5 cluster the backpressure monitor shows my source fully backpressured and one downstream keyBy operator at 100% busy. Where is the real bottleneck and what order should I try fixes in?",
+      "expected_output": "Identification of the saturated keyBy operator as the bottleneck (the source is the victim), with a fix order: profile the operator (flame graphs), reduce its work/serialization cost, then parallelism, and a note that adding capacity upstream is useless.",
+      "files": [],
+      "assertions": [
+        "States that the 100%-busy downstream operator is the bottleneck and the backpressured source is a symptom",
+        "Links or references docs/content/docs/ops/monitoring/back_pressure.md",
+        "Suggests flame graphs or profiling (docs/content/docs/ops/debugging/flame_graphs.md) before raising parallelism",
+        "Does NOT recommend increasing source parallelism as the first fix"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to run my Flink SQL job locally before deploying: build the tree, start sql-client, use a datagen source and print sink, and EXPLAIN the query. Give me the exact commands and where the sql-client code lives in this repo.",
+      "expected_output": "A concrete local loop: fast mvn build command, ./bin/sql-client.sh invocation, datagen/print DDL, EXPLAIN step, and the flink-table/flink-sql-client path.",
+      "files": [],
+      "assertions": [
+        "Includes the fast build command ./mvnw clean install -DskipTests -Dfast -Pskip-webui-build -T1C or a documented ./mvnw single-module build",
+        "Uses ./bin/sql-client.sh to enter interactive SQL",
+        "DDL uses `'connector' = 'datagen'` for the source and `'connector' = 'print'` for the sink",
+        "Names flink-table/flink-sql-client/ as the sql-client module path and includes an EXPLAIN step"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "My Flink job restarts forever after a TaskManager OOM. Recommend a restart-strategy config from this source tree that fails fast after repeated crashes instead of looping, and tell me which file defines the keys.",
+      "expected_output": "A failure-rate (or exponential-delay with reset) restart-strategy configuration, with the exact key names, plus the source file flink-core/src/main/java/org/apache/flink/configuration/RestartStrategyOptions.java and guidance to fix the OOM root cause.",
+      "files": [],
+      "assertions": [
+        "Uses restart-strategy with failure-rate or exponential-delay rather than unlimited fixed-delay",
+        "Names flink-core/src/main/java/org/apache/flink/configuration/RestartStrategyOptions.java as the key definition file",
+        "Mentions diagnosing the underlying OOM via docs/content/docs/deployment/memory/_index.md rather than only masking it",
+        "Does NOT recommend restart-strategy = none as the fix for an OOM crash loop"
+      ]
+    }
+  ]
+}

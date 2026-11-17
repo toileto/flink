@@ -1,0 +1,41 @@
+{
+  "skill_name": "flink-state-checkpointing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our Flink 2.5 job has 400 GB of keyed state on the heap backend and checkpoints take 6 minutes against a 1-minute checkpoint interval, causing recovery loops. Which state backend and config keys should we switch to, and what order should we apply the changes?",
+      "expected_output": "Recommendation to move to RocksDB with incremental checkpoints, then changelog backend if alignment/write still exceeds the interval, with the exact config keys and a validation sequence.",
+      "files": [],
+      "assertions": [
+        "Recommends state.backend.type set to the RocksDB backend and references flink-state-backends/flink-statebackend-rocksdb/",
+        "Sets execution.checkpointing.incremental to true",
+        "Mentions the changelog backend (flink-statebackend-changelog / state.changelog.storage) as the follow-up if checkpoints still exceed the interval",
+        "Does NOT recommend merely raising execution.checkpointing.interval as the primary fix"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I changed my KeyedProcessFunction state from ValueState<Long> to ValueState<CustomPojo> and now restoring from the previous savepoint fails with a serializer compatibility error on Apache Flink. How do I migrate the state safely?",
+      "expected_output": "Explanation that state serializer snapshots are versioned and must resolve compatibility; options: implement TypeSerializerSnapshot migration, or use a documented state migration path with stable operator UIDs, validated by restoring an old savepoint in staging before production.",
+      "files": [],
+      "assertions": [
+        "Explains TypeSerializerSnapshot / resolveSchemaCompatibility and getCurrentVersion versioning",
+        "Requires operator `uid(\"...\")` stability as a precondition for restore",
+        "Requires a staging restore with `bin/flink run -s <savepoint-path>` of the OLD savepoint under the NEW jar",
+        "Does NOT suggest deleting the savepoint and restarting state from scratch as the first option"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Explain the difference between a Flink checkpoint and a savepoint for my upgrade from 2.4 to 2.5, and give me the exact sequence of flink CLI commands to do a stop-with-savepoint upgrade of job 1234 with state on S3.",
+      "expected_output": "A table of checkpoint vs savepoint semantics plus a numbered command sequence: stop-with-savepoint with an explicit savepoint directory, then flink run -s <path> with the new jar, plus verification steps.",
+      "files": [],
+      "assertions": [
+        "States that checkpoints are jobmanager-owned failure recovery artifacts while savepoints are user-owned migration artifacts",
+        "Uses `flink savepoint --stop-with-savepoint` (or -s stop-with-savepoint) for the stopping step",
+        "Restore command uses `flink run -s <savepoint-path>` with the new jar",
+        "Includes a verification step checking operator state sizes or absence of `No state found for operator` warnings"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "skill_name": "flink-datastream-programming",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm writing a Flink 2.5 DataStream job that joins two Kafka-free sources by customer_id after keyBy, and I need timers to flush a running total every minute of processing time. Where do the classic API classes live in this source tree and what should the skeleton look like?",
+      "expected_output": "A KeyedProcessFunction skeleton using ValueState, registerProcessingTimeTimer, and onTimer, with correct file locations for DataStream/KeyedStream (flink-runtime) and functions (flink-streaming-java), and a note that keyed state/timers require keyBy first.",
+      "files": [],
+      "assertions": [
+        "Points to flink-runtime/src/main/java/org/apache/flink/streaming/api/datastream/KeyedStream.java as the classic keyBy result type",
+        "Skeleton extends KeyedProcessFunction and implements both processElement and onTimer",
+        "State is obtained via getRuntimeContext().getState(...) or StateDeclarations.value(...)",
+        "States that timers only fire on keyed streams, NOT on a plain DataStream"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our tumbling event-time windows are silently missing about 5% of events and one subtask's watermark never advances when its partition goes quiet. Source events can arrive up to 8 seconds late on Apache Flink. What watermark strategy should I use?",
+      "expected_output": "forBoundedOutOfOrderness of at least 8 seconds plus withIdleness for the quiet-partition case, with timestamp assigner and an explanation of the late-data policy options.",
+      "files": [],
+      "assertions": [
+        "Recommends WatermarkStrategy.forBoundedOutOfOrderness with a duration >= 8 seconds",
+        "Uses `WatermarkStrategy.withIdleness(...)` to address the watermark that never advances",
+        "Mentions withTimestampAssigner or extracting epoch millis from the event",
+        "Does NOT recommend forMonotonousTimestamps as the fix for 8-second-late events"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Write a JUnit test for my KeyedProcessFunction running total that verifies the processing-time timer flushes after 60 seconds, without using Thread.sleep, using the Flink test harness available in this repo.",
+      "expected_output": "A harness-based test using KeyedOneInputStreamOperatorTestHarness (or ProcessFunctionTestHarnesses) that opens the harness, processes elements, calls advanceProcessingTime to fire the timer, and asserts output.",
+      "files": [],
+      "assertions": [
+        "Uses KeyedOneInputStreamOperatorTestHarness or ProcessFunctionTestHarnesses rather than a live MiniCluster",
+        "Time is advanced via advanceProcessingTime(...) or processWatermark(...), NOT Thread.sleep",
+        "Assertions use harness.extractOutputValues() or getOutput()",
+        "Test closes the harness (try-with-resources or @AfterEach close)"
+      ]
+    }
+  ]
+}

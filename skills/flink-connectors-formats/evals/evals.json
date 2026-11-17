@@ -1,0 +1,41 @@
+{
+  "skill_name": "flink-connectors-formats",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need end-to-end exactly-once from a replayable source into files on S3 in my Apache Flink 2.5 job. Which interfaces in this source tree implement the commit protocol, and how do I verify the guarantee actually holds under TaskManager failure?",
+      "expected_output": "Pointers to CommittingSinkWriter/SupportsCommitter/Committer and FileSink in this tree, explanation of the barrier-aligned two-phase commit, and a kill-a-TaskManager verification recipe with exact-set assertions.",
+      "files": [],
+      "assertions": [
+        "Names flink-core/src/main/java/org/apache/flink/api/connector/sink2/CommittingSinkWriter.java or SupportsCommitter.java as the commit interface",
+        "Points to flink-connectors/flink-connector-files/.../sink/FileSink.java as the exactly-once file sink",
+        "Lists all three conditions: checkpointing enabled, replayable source, checkpoint-aligned sink commit",
+        "Verification step includes killing a TaskManager (or flink cancel) and asserting no missing AND no duplicate records"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our Flink SQL job writes to a Kafka topic through a sink configured with at-least-once and we see duplicates after failures. Also give me a JSON filesystem DDL example I can EXPLAIN first on OSS Flink before touching the real pipeline.",
+      "expected_output": "Explanation that AT_LEAST_ONCE permits duplicates on recovery and what must change for exactly-once (sink with commit protocol + replayable source), plus a filesystem+JSON CREATE TABLE with WATERMARK and an EXPLAIN step.",
+      "files": [],
+      "assertions": [
+        "Explains that at-least-once commits without checkpoint alignment so retries after failure produce duplicates",
+        "DDL uses `'connector' = 'filesystem'` and `'format' = 'json'` WITH options",
+        "DDL declares `WATERMARK FOR event_time` before the WITH clause",
+        "Recommends EXPLAIN before submitting; does NOT recommend disabling checkpointing to stop duplicates"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Where in the Apache Flink source tree should I implement a custom source so I don't hand-roll the split fetch loop, and what are the four roles I must provide for a FLIP-27 source?",
+      "expected_output": "Recommendation to extend SourceReaderBase/SingleThreadMultiplexSourceReaderBase in flink-connector-base with a SplitReader and RecordEmitter, and enumeration of Source, SplitEnumerator, SourceSplit (with versioned serializer), SourceReader roles.",
+      "files": [],
+      "assertions": [
+        "Names SourceReaderBase or SingleThreadMultiplexSourceReaderBase in flink-connectors/flink-connector-base",
+        "Lists Source, SplitEnumerator, SourceSplit, and SourceReader as the four roles",
+        "Mentions SimpleVersionedSerializer for splits",
+        "Does NOT recommend implementing SourceFunction (legacy, removed interface)"
+      ]
+    }
+  ]
+}
